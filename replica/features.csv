@@ -1,0 +1,29 @@
+feature,area,priority,original,clone,notes
+Calendario semanal con planificados y realizados,S02,must,yes,yes,
+Vista mensual del calendario,S02,should,yes,yes,
+Resumen semanal (TSS/horas/distancia),S02,must,yes,yes,
+Color de cumplimiento planificado vs realizado,S02,must,premium,yes,verde/amarillo/naranja/rojo
+Detalle de entreno con métricas,S03,must,yes,yes,
+Gráfico de streams (FC/potencia/ritmo/altitud),S03,must,yes,yes,cursor táctil
+Tiempo en zonas por entreno,S03,must,premium,yes,FC/potencia/ritmo
+Vueltas/intervalos,S03,should,yes,yes,desde FIT/TCX
+Mapa de la ruta,S03,could,yes,partial,trazo SVG sin teselas de mapa (offline)
+RPE/sensaciones/notas,S03,should,yes,yes,
+TSS por potencia/ritmo/FC/natación/RPE,core,must,yes,yes,
+Gráfico de rendimiento (CTL/ATL/TSB),S04,must,premium,yes,
+Proyección de forma con lo planificado,S04,should,premium,yes,
+Distribución de zonas por periodo,S04,should,premium,yes,
+Curva de picos (mean-max),S04,should,premium,yes,
+TSS semanal,S04,must,premium,yes,también horas/km/kcal
+Configuración de umbrales y zonas,S05,must,yes,yes,
+Detección automática de umbrales desde historial,S05,must,no,yes,
+Importar FIT/GPX/TCX (también .gz),S06,must,yes,yes,
+Importar CSV (Strava/TrainingPeaks/genérico),S06,must,no,yes,también métricas diarias
+Copia de seguridad JSON,S06,should,no,yes,
+Constructor de entreno estructurado,S07,should,premium,yes,plantillas + repeticiones
+Planificar entreno futuro,S07,must,premium,yes,
+Plan anual con eventos,S08,could,premium,yes,fases y TSS semanal objetivo
+Métricas diarias,S09,should,yes,yes,
+Récords y mejores marcas,S10,should,premium,yes,
+PWA instalable offline,core,must,no,yes,
+Sincronización automática con relojes,core,could,yes,no,requiere servidor/OAuth; se importa por archivo
