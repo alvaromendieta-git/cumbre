@@ -1,11 +1,11 @@
-import { CalendarPlus, Download, Gauge, HeartPulse, Moon, Scale, Trophy } from 'lucide-react';
+import { AlertTriangle, BatteryCharging, CalendarPlus, Download, Flame, Gauge, HeartPulse, Moon, Scale, TrendingUp, Trophy } from 'lucide-react';
 import { useState } from 'react';
-import { Card, Empty, Header, Stat, go } from '../components/ui';
+import { Card, CountUp, Empty, Header, Stat, Trend, go } from '../components/ui';
 import { PmcChart, Sparkline } from '../components/charts';
 import { AddSheet, WorkoutChip } from '../components/workout';
 import { useTraining } from '../lib/store';
 import { addDays, dayLong, diffDays, fmtHours, fmtKm, today, weekStartOf } from '../lib/format';
-import { formLabel, pmcAt, rampRate } from '../lib/metrics';
+import { pmcAt, trainingStatus, tsbColor, type StatusLevel } from '../lib/metrics';
 
 export default function Today() {
   const data = useTraining();
@@ -34,8 +34,11 @@ export default function Today() {
   }
 
   const now = pmcAt(pmc, t);
-  const ramp = rampRate(pmc, t);
-  const form = now ? formLabel(now.tsb) : null;
+  const st = trainingStatus(pmc, t);
+  const alert = st.level === 'danger' || st.level === 'overreach';
+  const StIcon = ({ danger: AlertTriangle, overreach: Flame, productive: TrendingUp, fresh: BatteryCharging, detraining: BatteryCharging, neutral: Gauge, empty: Gauge } as Record<StatusLevel, typeof Gauge>)[st.level];
+  // needle position on the gauge: TSB -50 (left, red) .. +40 (right)
+  const needle = now ? Math.max(2, Math.min(98, ((now.tsb + 50) / 90) * 100)) : 50;
   const todayActs = byDate.get(t) ?? [];
   const todayPlans = plannedByDate.get(t) ?? [];
   const pairedIds = new Set([...pairs.values()].map((a) => a.id));
@@ -58,20 +61,29 @@ export default function Today() {
     <>
       <Header title={<span>Hoy <span className="muted sm" style={{ fontWeight: 500 }}>· {dayLong(t)}</span></span>} right={<button className="icon-btn" aria-label="Añadir entreno" onClick={() => setAdd(true)}><CalendarPlus size={20} /></button>} />
       <div className="stack-lg">
-        <Card title="Estado de forma" action={<button className="btn sm ghost" onClick={() => go('analisis')}>Ver análisis</button>}>
+        <Card tint={st.color} className={alert ? 'alert' : ''} title="Estado de forma" action={<button className="btn sm ghost" onClick={() => go('analisis')}>Análisis</button>}>
           {now ? (
-            <>
+            <div className="stack">
+              <div className="row between wrap">
+                <span className="status-pill"><span className="pulse" /><StIcon size={16} /> {st.label}</span>
+                {st.acwr != null && <span className="xs muted tnum">Carga aguda/crónica <b style={{ color: st.acwr > 1.3 ? 'var(--st-danger)' : st.acwr < 0.8 ? 'var(--st-detraining)' : 'var(--st-fresh)' }}>{st.acwr.toFixed(2)}</b></span>}
+              </div>
               <div className="stats">
-                <Stat big label="Fitness" value={now.ctl.toFixed(0)} tone="fitness" unit="CTL" />
-                <Stat big label="Fatiga" value={now.atl.toFixed(0)} tone="fatigue" unit="ATL" />
-                <Stat big label="Forma" value={(now.tsb > 0 ? '+' : '') + now.tsb.toFixed(0)} tone="form" unit="TSB" />
+                <Stat big glow label="Fitness" value={<CountUp value={now.ctl} />} tone="fitness" unit="CTL" extra={<Trend delta={st.ctlDelta} badWhen="down" />} />
+                <Stat big glow label="Fatiga" value={<CountUp value={now.atl} />} color={alert ? 'var(--st-danger)' : 'var(--c-fatigue)'} unit="ATL" extra={<Trend delta={st.atlDelta} badWhen="up" />} />
+                <Stat big glow label="Forma" value={<CountUp value={now.tsb} prefix="±" />} color={tsbColor(now.tsb)} unit="TSB" />
               </div>
-              <div className="row between sm" style={{ marginTop: 10 }}>
-                <span className={`c-${form!.tone}`}>{form!.text}</span>
-                {ramp != null && <span className="muted tnum">Rampa {ramp > 0 ? '+' : ''}{ramp.toFixed(1)}/sem</span>}
+              <div>
+                <div className="gauge" role="meter" aria-valuemin={-50} aria-valuemax={40} aria-valuenow={Math.round(now.tsb)} aria-label="Forma">
+                  <span className="needle" style={{ left: `${needle}%` }} />
+                </div>
+                <div className="row between" style={{ fontSize: 10, marginTop: 6, color: 'var(--c-text-muted)' }}>
+                  <span style={{ color: 'var(--st-danger)' }}>Fatiga</span><span>Productivo</span><span>Equilibrado</span><span style={{ color: 'var(--st-fresh)' }}>Fresco</span>
+                </div>
               </div>
-              <div style={{ marginTop: 8 }}><PmcChart points={last90} height={90} compact /></div>
-            </>
+              <p className="sm" style={{ margin: 0, color: alert ? st.color : undefined }}>{alert && <AlertTriangle size={14} style={{ verticalAlign: -2, marginRight: 4 }} />}{st.advice}</p>
+              <PmcChart points={last90} height={96} compact />
+            </div>
           ) : <p className="muted sm">Sin carga registrada todavía.</p>}
         </Card>
 
@@ -94,11 +106,11 @@ export default function Today() {
           <div className="stats">
             <Stat label="Tiempo" value={fmtHours(wDur)} unit={pDur ? `/ ${fmtHours(pDur)}` : 'h'} />
             <Stat label="Distancia" value={fmtKm(wDist, 1)} unit="km" />
-            <Stat label="TSS" value={Math.round(wTss)} unit={pTss ? `/ ${Math.round(pTss)}` : undefined} />
+            <Stat label="TSS" value={<CountUp value={wTss} />} unit={pTss ? `/ ${Math.round(pTss)}` : undefined} />
           </div>
           {pTss > 0 && (
-            <div style={{ marginTop: 10, height: 6, background: 'var(--c-surface-2)', borderRadius: 3, overflow: 'hidden' }} aria-label={`Completado ${Math.round((wTss / pTss) * 100)}% del TSS planificado`}>
-              <div style={{ width: `${Math.min(100, (wTss / pTss) * 100)}%`, height: '100%', background: 'var(--c-accent)' }} />
+            <div className="progress" style={{ marginTop: 12 }} aria-label={`Completado ${Math.round((wTss / pTss) * 100)}% del TSS planificado`}>
+              <div style={{ width: `${Math.min(100, (wTss / pTss) * 100)}%` }} />
             </div>
           )}
         </Card>

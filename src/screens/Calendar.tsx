@@ -1,10 +1,10 @@
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { type CSSProperties, useState } from 'react';
 import { Header, Seg, Stat, sportColor } from '../components/ui';
-import { AddSheet, WorkoutChip } from '../components/workout';
+import { AddSheet, WorkoutChip, loadColor } from '../components/workout';
 import { useTraining } from '../lib/store';
 import { addDays, dayShort, dowShort, fmtHours, fmtKm, monthLabel, parseDay, today, weekStartOf } from '../lib/format';
-import { compliance, pmcAt } from '../lib/metrics';
+import { compliance, pmcAt, tsbColor } from '../lib/metrics';
 import type { Sport } from '../lib/types';
 
 export default function Calendar() {
@@ -70,7 +70,7 @@ export default function Calendar() {
                 <Stat label="Tiempo" value={fmtHours(wDur)} unit={pDur ? `/${fmtHours(pDur)}` : undefined} />
                 <Stat label="Km" value={fmtKm(wDist, 0)} />
                 <Stat label="TSS" value={Math.round(wTss)} unit={pTss ? `/${Math.round(pTss)}` : undefined} />
-                <Stat label="CTL" value={endPmc ? endPmc.ctl.toFixed(0) : '—'} tone="fitness" />
+                <Stat label="Forma" value={endPmc ? endPmc.tsb.toFixed(0) : '—'} color={endPmc ? tsbColor(endPmc.tsb) : undefined} />
               </div>
               {bySport.size > 0 && (
                 <div className="row wrap xs muted" style={{ marginTop: 8, gap: 12 }}>
@@ -122,8 +122,10 @@ function MonthGrid({ anchor, weekStart, onPick, dayItems, pairs }: { anchor: str
       {Array.from({ length: 42 }, (_, i) => addDays(start, i)).map((d) => {
         const { plans, acts } = dayItems(d);
         const tss = [...acts, ...plans.map((p) => pairs.get(p.id)).filter(Boolean)].reduce((s, a) => s + (a?.tss ?? 0), 0);
+        const heat = Math.min(1, tss / 180);
         return (
-          <button key={d} className={`cell ${d.slice(0, 7) !== month ? 'out' : ''} ${d === t ? 'today' : ''}`} onClick={() => onPick(d)} aria-label={`${dayShort(d)}: ${plans.length + acts.length} entrenos`}>
+          <button key={d} className={`cell ${d.slice(0, 7) !== month ? 'out' : ''} ${d === t ? 'today' : ''}`} onClick={() => onPick(d)} aria-label={`${dayShort(d)}: ${plans.length + acts.length} entrenos`} style={{ '--heat': heat * 0.55, '--load': loadColor(tss) } as CSSProperties}>
+            <span className="heat" />
             <span className="n">{parseDay(d).getDate()}</span>
             {plans.map((p) => {
               const c = compliance(p, pairs.get(p.id));

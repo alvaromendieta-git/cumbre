@@ -479,3 +479,64 @@ export function weekKeyOf(date: string, weekStart: 0 | 1) {
   d.setDate(d.getDate() - back);
   return dayKey(d);
 }
+
+// ---------- load status (drives colours across the app) ----------
+
+export type StatusLevel = 'fresh' | 'productive' | 'neutral' | 'overreach' | 'danger' | 'detraining' | 'empty';
+
+export interface TrainingStatus {
+  level: StatusLevel;
+  label: string;
+  advice: string;
+  color: string; // css var
+  acwr?: number; // acute:chronic ratio (ATL/CTL)
+  ctlDelta?: number; // 7-day change
+  atlDelta?: number;
+}
+
+export const STATUS_COLOR: Record<StatusLevel, string> = {
+  fresh: 'var(--st-fresh)',
+  productive: 'var(--st-productive)',
+  neutral: 'var(--st-neutral)',
+  overreach: 'var(--st-overreach)',
+  danger: 'var(--st-danger)',
+  detraining: 'var(--st-detraining)',
+  empty: 'var(--st-neutral)',
+};
+
+/** Combine form (TSB), acute:chronic ratio and ramp rate into one easy-to-read state. */
+export function trainingStatus(pmc: PmcPoint[], date = today()): TrainingStatus {
+  const now = pmcAt(pmc, date);
+  if (!now || now.ctl < 1) return { level: 'empty', label: 'Sin datos', advice: 'Importa tu historial para ver tu estado.', color: STATUS_COLOR.empty };
+  const prev = pmcAt(pmc, addDays(date, -7));
+  const acwr = now.ctl > 5 ? now.atl / now.ctl : 1;
+  const ramp = prev ? now.ctl - prev.ctl : 0;
+  const base = { acwr, ctlDelta: ramp, atlDelta: prev ? now.atl - prev.atl : 0 };
+  let level: StatusLevel;
+  if (now.tsb < -30 || acwr > 1.5 || ramp > 8) level = 'danger';
+  else if (now.tsb < -20 || acwr > 1.3 || ramp > 6) level = 'overreach';
+  else if (now.tsb > 25) level = 'detraining';
+  else if (now.tsb > 5) level = 'fresh';
+  else if (now.tsb < -10) level = 'productive';
+  else level = 'neutral';
+  const text: Record<StatusLevel, [string, string]> = {
+    danger: ['Fatiga acumulada alta', 'Riesgo de sobreentrenamiento: prioriza descanso o sesiones muy suaves 2–3 días.'],
+    overreach: ['Carga exigente', 'Estás cargando fuerte. Vigila el sueño y la VFC; mete un día suave pronto.'],
+    productive: ['Construyendo forma', 'Buena carga de entrenamiento. Sigue así con recuperación suficiente.'],
+    neutral: ['Equilibrado', 'Carga y recuperación compensadas. Buen momento para una sesión de calidad.'],
+    fresh: ['Fresco', 'Recuperado y listo para rendir o competir.'],
+    detraining: ['Demasiado descanso', 'Tu fitness empieza a bajar: retoma la carga progresivamente.'],
+    empty: ['', ''],
+  };
+  return { level, label: text[level][0], advice: text[level][1], color: STATUS_COLOR[level], ...base };
+}
+
+/** Colour for a single TSB value (used for bars / segments). */
+export function tsbColor(tsb: number): string {
+  if (tsb < -30) return 'var(--st-danger)';
+  if (tsb < -20) return 'var(--st-overreach)';
+  if (tsb < -10) return 'var(--st-productive)';
+  if (tsb > 25) return 'var(--st-detraining)';
+  if (tsb > 5) return 'var(--st-fresh)';
+  return 'var(--st-neutral)';
+}

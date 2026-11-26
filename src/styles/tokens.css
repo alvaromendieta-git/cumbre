@@ -1,29 +1,45 @@
-/* Generated from replica/design/tokens.json */
+/* Generated from replica/design/tokens.json (v2) */
 :root {
-  --c-bg: #0e1115;
-  --c-surface: #171b21;
-  --c-surface-2: #20262e;
-  --c-border: #2b323c;
-  --c-border-input: #6b7686;
-  --c-text: #eef1f5;
-  --c-text-muted: #9ba5b3;
-  --c-accent: #ff7a4d;
-  --c-on-accent: #1b0c05;
-  --c-danger: #ff6b6b;
-  --c-success: #3ddc97;
-  --c-warning: #ffc857;
-  --c-orange: #ff9f43;
-  --c-fitness: #5aa9ff;
-  --c-fatigue: #ff6fa0;
-  --c-form: #ffd166;
-  --c-run: #3ddc97;
-  --c-bike: #5aa9ff;
-  --c-swim: #45d4e6;
-  --c-strength: #c39bff;
-  --c-walk: #a3d977;
-  --c-row: #f0a6ca;
-  --c-ski: #b8e1ff;
-  --c-other: #9ba5b3;
+  --c-bg: #070b1a;
+  --c-surface: #121937;
+  --c-surface-2: #1c2550;
+  --c-border: #2a3566;
+  --c-border-input: #6f7db8;
+  --c-text: #f2f4ff;
+  --c-text-muted: #a3acd6;
+  --c-accent: #9b7bff;
+  --c-accent-2: #22d3ee;
+  --c-on-accent: #0b0720;
+  --c-danger: #ff5c6c;
+  --c-success: #34e0a1;
+  --c-warning: #ffb547;
+  --c-orange: #ff8a4c;
+  --c-fitness: #4cc3ff;
+  --c-fatigue: #ff6fb5;
+  --c-form: #ffd45e;
+  --c-run: #34e0a1;
+  --c-bike: #4cc3ff;
+  --c-swim: #5eead4;
+  --c-strength: #c4a1ff;
+  --c-walk: #b5e86b;
+  --c-row: #ff9ecf;
+  --c-ski: #a5d8ff;
+  --c-other: #a3acd6;
+
+  /* load status */
+  --st-fresh: #34e0a1;
+  --st-productive: #4cc3ff;
+  --st-neutral: #a3acd6;
+  --st-overreach: #ffb547;
+  --st-danger: #ff5c6c;
+  --st-detraining: #ffd45e;
+
+  /* glass layer */
+  --glass: rgba(22, 30, 66, 0.62);
+  --glass-strong: rgba(28, 37, 80, 0.78);
+  --glass-border: rgba(160, 175, 255, 0.14);
+  --glass-hi: rgba(255, 255, 255, 0.07);
+  --grad-accent: linear-gradient(135deg, var(--c-accent) 0%, var(--c-accent-2) 100%);
 
   --font-sans: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -33,18 +49,23 @@
   --fs-base: 16px; --lh-base: 24px;
   --fs-lg: 20px; --lh-lg: 28px;
   --fs-xl: 28px; --lh-xl: 34px;
-  --fs-display: 40px; --lh-display: 44px;
+  --fs-display: 44px; --lh-display: 48px;
 
   --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px;
 
-  --r-sm: 6px; --r-md: 10px; --r-lg: 16px; --r-pill: 999px;
+  --r-sm: 8px; --r-md: 14px; --r-lg: 22px; --r-pill: 999px;
 
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 10px 30px -12px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-pop: 0 18px 48px -10px rgba(0, 0, 0, 0.7);
 
-  --t-fast: 120ms; --t-base: 200ms; --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --t-fast: 140ms; --t-base: 320ms; --t-slow: 900ms;
+  --ease: cubic-bezier(0.2, 0.9, 0.25, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   --max-w: 720px;
-  --nav-h: 64px;
-  --header-h: 52px;
+  --nav-h: 68px;
+  --header-h: 56px;
+
+  /* mood: tinted by the athlete's load status (set from JS) */
+  --mood: var(--st-productive);
 }

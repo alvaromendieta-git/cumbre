@@ -1,10 +1,10 @@
 import { BarChart3 } from 'lucide-react';
 import { useState } from 'react';
-import { Card, Empty, Header, Seg, Stat, go, sportColor } from '../components/ui';
+import { Card, CountUp, Empty, Header, Seg, Stat, Trend, go, sportColor } from '../components/ui';
 import { BarChart, Legend, PeakCurve, PmcChart, ZoneBars, type Bar } from '../components/charts';
 import { useTraining } from '../lib/store';
 import { addDays, dayShort, fmtHours, fmtPace, today, weekStartOf } from '../lib/format';
-import { activityZones, formLabel, HR_ZONES_RUN, pmcAt, rampRate } from '../lib/metrics';
+import { activityZones, HR_ZONES_RUN, pmcAt, rampRate, trainingStatus, tsbColor } from '../lib/metrics';
 import { SPORT_LABEL, type Sport } from '../lib/types';
 
 type Range = '42' | '90' | '180' | '365' | 'all';
@@ -31,6 +31,8 @@ export default function Analysis() {
   const pts = pmc.filter((p) => p.date >= from && p.date <= addDays(t, 21));
   const now = pmcAt(pmc, t);
   const ramp = rampRate(pmc, t);
+  const st = trainingStatus(pmc, t);
+  const alert = st.level === 'danger' || st.level === 'overreach';
   const peakCtl = pmc.filter((p) => !p.future).reduce((m, p) => (p.ctl > m.ctl ? p : m), pmc[0]);
 
   // weekly bars
@@ -54,6 +56,17 @@ export default function Analysis() {
       highlight: w === weekStartOf(t, settings.weekStart),
     });
   }
+  // flag weeks whose load jumps >30% above the previous 3-week average (tss/hours only)
+  if (weekMetric === 'tss' || weekMetric === 'hours') {
+    weeks.forEach((wk, i) => {
+      const prev = weeks.slice(Math.max(0, i - 3), i).map((x) => x.value).filter((v) => v > 0);
+      if (prev.length >= 2) {
+        const avg = prev.reduce((a, b) => a + b, 0) / prev.length;
+        wk.alert = wk.value > avg * 1.3 && wk.value - avg > (weekMetric === 'tss' ? 60 : 1);
+      }
+    });
+  }
+  const spikes = weeks.filter((w) => w.alert).length;
   const fmtW = (v: number) => (weekMetric === 'hours' ? `${v.toFixed(1)}h` : Math.round(v).toString());
 
   // sport distribution
@@ -101,22 +114,23 @@ export default function Analysis() {
       <div className="stack-lg">
         <Seg label="Periodo" value={range} onChange={setRange} options={RANGES} />
 
-        <Card title="Gráfico de forma (PMC)">
+        <Card tint={st.color} className={alert ? 'alert' : ''} title="Gráfico de forma (PMC)" action={<span className="status-pill"><span className="pulse" />{st.label}</span>}>
           {now && (
             <div className="stats four" style={{ marginBottom: 10 }}>
-              <Stat label="Fitness" value={now.ctl.toFixed(0)} tone="fitness" />
-              <Stat label="Fatiga" value={now.atl.toFixed(0)} tone="fatigue" />
-              <Stat label="Forma" value={now.tsb.toFixed(0)} tone="form" />
-              <Stat label="Rampa" value={ramp != null ? (ramp > 0 ? '+' : '') + ramp.toFixed(1) : '—'} unit="/sem" />
+              <Stat label="Fitness" value={<CountUp value={now.ctl} />} tone="fitness" extra={<Trend delta={st.ctlDelta} badWhen="down" />} />
+              <Stat label="Fatiga" value={<CountUp value={now.atl} />} color={alert ? 'var(--st-danger)' : 'var(--c-fatigue)'} extra={<Trend delta={st.atlDelta} badWhen="up" />} />
+              <Stat label="Forma" value={<CountUp value={now.tsb} prefix="±" />} color={tsbColor(now.tsb)} />
+              <Stat label="Rampa" value={ramp != null ? (ramp > 0 ? '+' : '') + ramp.toFixed(1) : '—'} unit="/sem" color={ramp != null && ramp > 6 ? 'var(--st-danger)' : ramp != null && ramp > 0 ? 'var(--st-fresh)' : undefined} />
             </div>
           )}
           <PmcChart points={pts} />
-          <Legend items={[{ color: 'var(--c-fitness)', label: 'Fitness (CTL)' }, { color: 'var(--c-fatigue)', label: 'Fatiga (ATL)' }, { color: 'var(--c-form)', label: 'Forma (TSB)' }, { color: 'var(--c-border-input)', label: 'Proyección del plan' }]} />
-          {now && <p className="xs muted" style={{ marginBottom: 0 }}>{formLabel(now.tsb).text}. Pico de fitness: {peakCtl.ctl.toFixed(0)} ({dayShort(peakCtl.date)}). Rampa segura: 3–7 CTL/semana.</p>}
+          <Legend items={[{ color: 'var(--c-fitness)', label: 'Fitness (CTL)' }, { color: 'var(--c-fatigue)', label: 'Fatiga (ATL)' }, { color: 'var(--st-fresh)', label: 'Forma +' }, { color: 'var(--st-danger)', label: 'Forma en fatiga' }, { color: 'var(--c-accent)', label: 'TSS diario (burbujas)' }]} />
+          {now && <p className="xs" style={{ marginBottom: 0, color: alert ? st.color : 'var(--c-text-muted)' }}>{st.advice} Pico de fitness: {peakCtl.ctl.toFixed(0)} ({dayShort(peakCtl.date)}). Rampa segura: 3–7 CTL/semana.</p>}
         </Card>
 
         <Card title="Carga semanal" action={<div style={{ minWidth: 200 }}><Seg label="Métrica semanal" value={weekMetric} onChange={setWeekMetric} options={[{ value: 'tss', label: 'TSS' }, { value: 'hours', label: 'Horas' }, { value: 'km', label: 'Km' }, { value: 'kcal', label: 'Kcal' }]} /></div>}>
           <BarChart bars={weeks} fmt={fmtW} />
+          {spikes > 0 && <p className="xs c-danger" style={{ margin: '4px 0' }}>⚠ {spikes} {spikes === 1 ? 'semana' : 'semanas'} con un salto de carga &gt;30% sobre las 3 anteriores: más riesgo de lesión.</p>}
           <Legend items={[...sportsSeen].map((s) => ({ color: sportColor(s), label: SPORT_LABEL[s] }))} />
         </Card>
 

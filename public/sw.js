@@ -1,5 +1,5 @@
 // Cumbre service worker: app-shell cache, network-first for navigations.
-const CACHE = 'cumbre-v1';
+const CACHE = 'cumbre-v2';
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icons/icon.svg'])));
   self.skipWaiting();

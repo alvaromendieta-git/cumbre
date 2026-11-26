@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type CSSProperties, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import type { Sport } from '../lib/types';
 
@@ -36,28 +36,96 @@ export function Header({ title, back, right }: { title: ReactNode; back?: boolea
   );
 }
 
-export function Card({ title, action, children, className = '' }: { title?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {
+export function Card({ title, action, children, className = '', tint, style }: { title?: ReactNode; action?: ReactNode; children: ReactNode; className?: string; tint?: string; style?: CSSProperties }) {
   return (
-    <section className={`card ${className}`}>
+    <section className={`card ${tint ? 'hero' : ''} ${className}`} style={tint ? ({ '--tint': tint, ...style } as CSSProperties) : style}>
       {(title || action) && (
         <h2 className="card-title">
           <span>{title}</span>
           {action}
         </h2>
       )}
-      {children}
+      <div className="card-body">{children}</div>
     </section>
   );
 }
 
-export function Stat({ label, value, unit, tone, big }: { label: string; value: ReactNode; unit?: string; tone?: string; big?: boolean }) {
+/** Animated number that counts up when it changes. */
+export function CountUp({ value, decimals = 0, prefix = '' }: { value: number; decimals?: number; prefix?: string }) {
+  const [v, setV] = useState(0);
+  const from = useRef(0);
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return setV(value);
+    const start = performance.now();
+    const a = from.current;
+    let raf = 0;
+    const tick = (t: number) => {
+      const k = Math.min(1, (t - start) / 900);
+      const e = 1 - Math.pow(1 - k, 3);
+      setV(a + (value - a) * e);
+      if (k < 1) raf = requestAnimationFrame(tick);
+      else from.current = value;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  const sign = prefix === '±' ? (value > 0 ? '+' : '') : prefix;
+  return <>{sign}{v.toFixed(decimals)}</>;
+}
+
+/** Small arrow badge showing a 7-day change; `badWhen` says which direction is bad news. */
+export function Trend({ delta, badWhen, unit = '' }: { delta?: number; badWhen: 'up' | 'down'; unit?: string }) {
+  if (delta == null || !isFinite(delta)) return null;
+  const flat = Math.abs(delta) < 0.5;
+  const up = delta > 0;
+  const cls = flat ? 'flat' : up ? (badWhen === 'up' ? 'up-bad' : 'up-good') : badWhen === 'down' ? 'down-bad' : 'down-good';
+  return (
+    <span className={`trend ${cls}`} title="Cambio en 7 días">
+      {flat ? '→' : up ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}{unit}
+    </span>
+  );
+}
+
+export function Stat({ label, value, unit, tone, big, color, glow, extra }: { label: string; value: ReactNode; unit?: string; tone?: string; big?: boolean; color?: string; glow?: boolean; extra?: ReactNode }) {
   return (
     <div className={`stat ${big ? 'big' : ''}`}>
       <div className="label">{label}</div>
-      <div className={`value ${tone ? 'c-' + tone : ''}`}>
+      <div className={`value ${tone ? 'c-' + tone : ''} ${glow ? 'glow' : ''}`} style={color ? { color } : undefined}>
         {value}
         {unit && <small>{unit}</small>}
       </div>
+      {extra}
+    </div>
+  );
+}
+
+/** Soft floating bubbles behind a chart. */
+export function ChartBubbles({ color = 'var(--c-accent)', count = 6, seed = 1 }: { color?: string; count?: number; seed?: number }) {
+  const items = useMemo(() => {
+    let x = seed * 9301 + 49297;
+    const rnd = () => ((x = (x * 9301 + 49297) % 233280) / 233280);
+    return Array.from({ length: count }, () => ({ l: rnd() * 90, t: rnd() * 80, s: 40 + rnd() * 110, d: 7 + rnd() * 8, dx: (rnd() - 0.5) * 30, dy: (rnd() - 0.5) * 30 }));
+  }, [count, seed]);
+  return (
+    <div className="chart-bubbles" aria-hidden>
+      {items.map((b, i) => (
+        <span key={i} style={{ left: `${b.l}%`, top: `${b.t}%`, width: b.s, height: b.s, '--bc': color, '--d': `${b.d}s`, '--dx': `${b.dx}px`, '--dy': `${b.dy}px` } as CSSProperties} />
+      ))}
+    </div>
+  );
+}
+
+/** Fixed background: drifting colour orbs (tinted by load status) and rising bubbles. */
+export function Backdrop() {
+  const bubbles = useMemo(() => Array.from({ length: 12 }, (_, i) => ({ l: (i * 37) % 100, s: 14 + ((i * 53) % 46), d: 18 + ((i * 29) % 22), delay: -((i * 7) % 30) })), []);
+  return (
+    <div className="backdrop" aria-hidden>
+      <div className="orb o1" />
+      <div className="orb o2" />
+      <div className="orb o3" />
+      {bubbles.map((b, i) => (
+        <span key={i} className="bubble" style={{ left: `${b.l}%`, bottom: -60, width: b.s, height: b.s, animationDuration: `${b.d}s`, animationDelay: `${b.delay}s` }} />
+      ))}
     </div>
   );
 }

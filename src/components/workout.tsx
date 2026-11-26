@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type CSSProperties, useState } from 'react';
 import { Bike, Dumbbell, Footprints, Mountain, Snowflake, Waves, Activity as ActIcon, Sailboat } from 'lucide-react';
 import type { Activity, Planned, Sport } from '../lib/types';
 import { SPORT_LABEL, SPORTS } from '../lib/types';
@@ -29,7 +29,7 @@ export function WorkoutChip({ act, plan }: { act?: Activity; plan?: Planned }) {
   const sp = act?.avgSpeed ? speedFor(sport, act.avgSpeed) : null;
   const label = `${SPORT_LABEL[sport]}: ${title}. ${plan ? COMPLIANCE_LABEL[c] : 'Realizado'}`;
   return (
-    <button className={`wo ${!act ? 'planned' : ''}`} onClick={() => (act ? go(`entreno/${act.id}`) : go(`plan/${plan!.id}`))} aria-label={label}>
+    <button className={`wo ${!act ? 'planned' : ''}`} style={{ '--sport': sportColor(sport), '--load': loadColor(act?.tss ?? plan?.tss, act?.intensity) } as CSSProperties} onClick={() => (act ? go(`entreno/${act.id}`) : go(`plan/${plan!.id}`))} aria-label={label}>
       <span className="bar" style={{ background: sportColor(sport) }} />
       <span className="grow" style={{ minWidth: 0 }}>
         <span className="row" style={{ gap: 6 }}>
@@ -42,7 +42,7 @@ export function WorkoutChip({ act, plan }: { act?: Activity; plan?: Planned }) {
             <>
               <span><b>{fmtDur(act.duration)}</b></span>
               {act.distance ? <span><b>{fmtKm(act.distance, 2)}</b> km</span> : null}
-              {act.tss != null && <span><b>{act.tss}</b> {TSS_LABEL[act.tssMethod ?? 'none']}</span>}
+              {act.tss != null && <span>{TSS_LABEL[act.tssMethod ?? 'none']}</span>}
               {sp && sport !== 'strength' && <span>{sp.value} {sp.unit}</span>}
             </>
           ) : (
@@ -60,8 +60,18 @@ export function WorkoutChip({ act, plan }: { act?: Activity; plan?: Planned }) {
           )}
         </span>
       </span>
+      {(act?.tss ?? plan?.tss) != null && <span className="tss-badge" aria-hidden>{act?.tss ?? plan?.tss}</span>}
     </button>
   );
+}
+
+/** Colour of a session's load: calm → hard → very hard (red). */
+export function loadColor(tss?: number, intensity?: number) {
+  if (tss == null) return 'var(--c-border-input)';
+  if (tss >= 150 || (intensity ?? 0) >= 1.0) return 'var(--st-danger)';
+  if (tss >= 100 || (intensity ?? 0) >= 0.9) return 'var(--st-overreach)';
+  if (tss >= 60) return 'var(--c-accent)';
+  return 'var(--st-fresh)';
 }
 
 /** Quick add: planned workout (future/today) or a manual completed activity. */

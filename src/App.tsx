@@ -1,6 +1,8 @@
 import { BarChart3, CalendarDays, Home, Menu, Plus } from 'lucide-react';
-import { useState } from 'react';
-import { ToastHost, useRoute } from './components/ui';
+import { useEffect, useState } from 'react';
+import { Backdrop, ToastHost, useRoute } from './components/ui';
+import { useTraining } from './lib/store';
+import { trainingStatus } from './lib/metrics';
 import { AddSheet } from './components/workout';
 import Today from './screens/Today';
 import Calendar from './screens/Calendar';
@@ -20,6 +22,18 @@ const TABS = [
   { to: 'analisis', label: 'Análisis', icon: BarChart3, match: ['analisis'] },
   { to: 'mas', label: 'Más', icon: Menu, match: ['mas', 'zonas', 'importar', 'plan-anual', 'metricas', 'records', 'ajustes'] },
 ];
+
+/** Tints the whole backdrop with the athlete's current load status (red when fatigue piles up). */
+function MoodSync() {
+  const data = useTraining();
+  useEffect(() => {
+    if (!data) return;
+    const st = trainingStatus(data.pmc);
+    document.documentElement.style.setProperty('--mood', st.color);
+    document.documentElement.dataset.status = st.level;
+  }, [data]);
+  return null;
+}
 
 export default function App() {
   const [route, id] = useRoute();
@@ -48,7 +62,11 @@ export default function App() {
   );
   return (
     <div className="app">
-      <main className="main">{screen}</main>
+      <Backdrop />
+      <MoodSync />
+      <main className="main">
+        <div className="page" key={route + (id ?? '')}>{screen}</div>
+      </main>
       <nav className="nav" aria-label="Principal">
         {tab(TABS[0])}
         {tab(TABS[1])}
