@@ -1,5 +1,5 @@
 // Cumbre service worker: app-shell cache, network-first for navigations.
-const CACHE = 'cumbre-v2';
+const CACHE = 'cumbre-v3';
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './index.html', './manifest.webmanifest', './icons/icon.svg'])));
   self.skipWaiting();
@@ -16,7 +16,9 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((r) => {
-    if (r.ok) { const copy = r.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
+    // never cache an HTML fallback under a non-page URL (e.g. a missing asset answered with index.html)
+    const html = (r.headers.get('content-type') || '').includes('text/html');
+    if (r.ok && !html) { const copy = r.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); }
     return r;
   })));
 });
