@@ -24,8 +24,8 @@ npm run dev        # desarrollo, accesible en la red local (--host)
 npm run build      # genera dist/
 npm run preview    # sirve dist/ en http://<tu-ip>:4173
 ```
-Para instalarla en el móvil necesita HTTPS (o localhost): publica `dist/` en cualquier hosting estático
-(GitHub Pages, Netlify, Cloudflare Pages) y en Chrome Android usa «Instalar aplicación».
+Publicada en **https://alvaromendieta-git.github.io/cumbre/** (GitHub Pages, rama `gh-pages`).
+Para publicar cambios: `npm run deploy`. En Chrome Android abre la URL y usa «Instalar aplicación».
 
 ### Tu historial
 `data/coros-historial-2026.csv` contiene 83 entrenos (jul–nov 2026) exportados de COROS. Impórtalo en
